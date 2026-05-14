@@ -15,58 +15,63 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
+
       matrix:
         os:
           - ubuntu-latest
           - ubuntu-22.04
 
         go_version:
-          - '1.17'
           - '1.18'
           - '1.21'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go_version }}
 
-      - name: Install Docker Compose
+      - name: Show versions
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
+          go version
+          docker --version
+          docker compose version
 
       - name: Build DB
-        run: docker-compose build
+        run: docker compose build
 
-      - name: Create DB
-        run: docker-compose up -d
+      - name: Start DB
+        run: docker compose up -d
+
+      - name: Wait DB
+        run: sleep 10
 
       - name: Run Tests
         run: go test -v ./...
 
+      - name: Stop Containers
+        if: always()
+        run: docker compose down
+
   build:
     needs: test
 
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.21'
 
-      - name: Build Application
-        run: go build -v main.go
+      - name: Build
+        run: go build -v ./...
